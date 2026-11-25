@@ -1,0 +1,16 @@
+[package]
+name = "cubo_cfop"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thiserror = "1.0"
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+btleplug = "0.11"
+aes = "0.8"
+cipher = { version = "0.4", features = ["block-padding"] }
+glam = { version = "0.29", features = ["serde"] }
+futures = "0.3"
+uuid = "1"

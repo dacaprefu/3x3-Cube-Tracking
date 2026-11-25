@@ -1,0 +1,8 @@
+# Credenciales y variables de entorno
+.env
+
+# Archivos compilados de Rust
+/target/
+
+# Reportes Excel generados en pruebas
+*.xlsx
