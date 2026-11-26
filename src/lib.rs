@@ -4,7 +4,9 @@ pub mod cfop;
 pub mod cube;
 pub mod gyro;
 pub mod export;
+pub mod ai_coach;
 
+pub use ai_coach::analyze_solve_with_gemini;
 pub use analytics::{
     phase_str, AnalyticsError, BlindRotation, LockupRecord, PauseRecord, PhaseMetrics, RotationTax,
     SolveAnalyzer, SolveReport,
