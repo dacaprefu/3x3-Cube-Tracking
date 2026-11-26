@@ -3,6 +3,7 @@ pub mod ble;
 pub mod cfop;
 pub mod cube;
 pub mod gyro;
+pub mod export;
 
 pub use analytics::{
     phase_str, AnalyticsError, BlindRotation, LockupRecord, PauseRecord, PhaseMetrics, RotationTax,
