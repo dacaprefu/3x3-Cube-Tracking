@@ -6,3 +6,8 @@
 
 # Reportes Excel generados en pruebas
 *.xlsx
+# Tauri y Leptos build artifacts
+target/
+**/target/
+ui/dist/
+*.xlsx
