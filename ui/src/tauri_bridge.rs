@@ -3,6 +3,8 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
+use crate::models::ScrambleStateDto;
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"], catch)]
@@ -28,6 +30,25 @@ pub async fn invoke_with_args<T: Serialize>(cmd: &str, args: &T) -> Result<JsVal
     invoke(cmd, js_args).await.map_err(format_js_err)
 }
 
+pub async fn invoke_get_current_scramble() -> Result<ScrambleStateDto, String> {
+    let val = invoke_no_args("get_current_scramble").await?;
+    serde_wasm_bindgen::from_value(val).map_err(|e| e.to_string())
+}
+
+pub async fn invoke_next_scramble() -> Result<String, String> {
+    let val = invoke_no_args("next_scramble").await?;
+    val.as_string()
+        .ok_or_else(|| "Respuesta inválida al generar scramble".to_string())
+}
+
+pub async fn invoke_prev_scramble() -> Result<Option<String>, String> {
+    let val = invoke_no_args("prev_scramble").await?;
+    if val.is_null() || val.is_undefined() {
+        return Ok(None);
+    }
+    Ok(val.as_string())
+}
+
 pub async fn invoke_start_ble_scan() -> Result<(), String> {
     invoke_no_args("start_ble_scan").await.map(|_| ())
 }
@@ -41,6 +62,46 @@ pub async fn invoke_request_ai_coach(report_json: &serde_json::Value) -> Result<
     let val = invoke_with_args("request_ai_coach", &payload).await?;
     val.as_string()
         .ok_or_else(|| "Respuesta inválida del Coach IA".to_string())
+}
+
+pub async fn invoke_request_ai_session_coach(
+    solves: &[serde_json::Value],
+) -> Result<String, String> {
+    let payload = serde_json::json!({ "solves": solves });
+    let val = invoke_with_args("request_ai_session_coach", &payload).await?;
+    val.as_string()
+        .ok_or_else(|| "Respuesta inválida del Coach IA de sesión".to_string())
+}
+
+pub async fn invoke_record_manual_solve(total_time_ms: u64) -> Result<(), String> {
+    let payload = serde_json::json!({ "totalTimeMs": total_time_ms });
+    invoke_with_args("record_manual_solve", &payload)
+        .await
+        .map(|_| ())
+}
+
+pub async fn invoke_delete_solve(index: usize) -> Result<(), String> {
+    let payload = serde_json::json!({ "index": index });
+    invoke_with_args("delete_solve", &payload)
+        .await
+        .map(|_| ())
+}
+
+pub async fn invoke_create_session(name: Option<String>) -> Result<String, String> {
+    let payload = serde_json::json!({ "name": name });
+    let val = invoke_with_args("create_session", &payload).await?;
+    val.as_string()
+        .ok_or_else(|| "Respuesta inválida al crear serie".to_string())
+}
+
+pub async fn invoke_switch_session(name: String) -> Result<Vec<serde_json::Value>, String> {
+    let payload = serde_json::json!({ "name": name });
+    let val = invoke_with_args("switch_session", &payload).await?;
+    serde_wasm_bindgen::from_value(val).map_err(|e| e.to_string())
+}
+
+pub async fn invoke_clear_active_session() -> Result<(), String> {
+    invoke_no_args("clear_active_session").await.map(|_| ())
 }
 
 pub async fn invoke_export_session(solves: &[serde_json::Value]) -> Result<String, String> {

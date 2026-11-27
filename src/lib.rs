@@ -6,7 +6,7 @@ pub mod gyro;
 pub mod export;
 pub mod ai_coach;
 
-pub use ai_coach::analyze_solve_with_gemini;
+pub use ai_coach::{analyze_session_with_gemini, analyze_solve_with_gemini};
 pub use analytics::{
     phase_str, AnalyticsError, BlindRotation, LockupRecord, PauseRecord, PhaseMetrics, RotationTax,
     SolveAnalyzer, SolveReport,
@@ -21,7 +21,8 @@ pub use cfop::{
     CfopPhase, CfopTracker, PhaseSummary,
 };
 pub use cube::{
-    parse_moves, Color, Corner, Cube, Edge, Face, Move, ParseMoveError, DEFAULT_CENTERS,
+    generate_wca_scramble, parse_moves, Color, Corner, Cube, Edge, Face, Move, ParseMoveError,
+    DEFAULT_CENTERS,
 };
 pub use gyro::{
     CubeOrientation, DetectedRotation, GyroError, GyroProcessor, RegripDetector, RegripEvent,

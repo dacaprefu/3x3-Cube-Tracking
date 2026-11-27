@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Eq)]
@@ -58,6 +60,38 @@ impl Move {
                 | Move::ZPrime
                 | Move::Z2
         )
+    }
+
+    pub fn inverse(&self) -> Self {
+        match self {
+            Move::U => Move::UPrime,
+            Move::UPrime => Move::U,
+            Move::U2 => Move::U2,
+            Move::D => Move::DPrime,
+            Move::DPrime => Move::D,
+            Move::D2 => Move::D2,
+            Move::L => Move::LPrime,
+            Move::LPrime => Move::L,
+            Move::L2 => Move::L2,
+            Move::R => Move::RPrime,
+            Move::RPrime => Move::R,
+            Move::R2 => Move::R2,
+            Move::F => Move::FPrime,
+            Move::FPrime => Move::F,
+            Move::F2 => Move::F2,
+            Move::B => Move::BPrime,
+            Move::BPrime => Move::B,
+            Move::B2 => Move::B2,
+            Move::X => Move::XPrime,
+            Move::XPrime => Move::X,
+            Move::X2 => Move::X2,
+            Move::Y => Move::YPrime,
+            Move::YPrime => Move::Y,
+            Move::Y2 => Move::Y2,
+            Move::Z => Move::ZPrime,
+            Move::ZPrime => Move::Z,
+            Move::Z2 => Move::Z2,
+        }
     }
 }
 
@@ -138,4 +172,87 @@ pub fn parse_moves(s: &str) -> Result<Vec<Move>, ParseMoveError> {
     s.split_whitespace()
         .map(|token| token.parse::<Move>())
         .collect()
+}
+
+static SCRAMBLE_SEED: AtomicU64 = AtomicU64::new(0);
+
+fn next_random_u64() -> u64 {
+    let time_entropy = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0x9e37_79b9_7f4a_7c15);
+
+    let prev = SCRAMBLE_SEED.fetch_add(0x9e37_79b9_7f4a_7c15, Ordering::Relaxed);
+    let mut x = prev ^ time_entropy.wrapping_add(0xbf58_476d_1ce4_e5b9);
+    if x == 0 {
+        x = 0x94d0_49bb_1331_11eb;
+    }
+    x ^= x >> 12;
+    x ^= x << 25;
+    x ^= x >> 27;
+    x.wrapping_mul(0x2545_f491_4f6c_dd1d)
+}
+
+/// Genera un scramble WCA estándar para 3x3 sin movimientos consecutivos en la misma cara
+/// ni secuencias redundantes en el mismo eje (p. ej. `R L R'`, `U D U`, `F B F2`).
+pub fn generate_wca_scramble(length: usize) -> Vec<String> {
+    const FACES: [&str; 6] = ["R", "L", "U", "D", "F", "B"];
+    const MODIFIERS: [&str; 3] = ["", "'", "2"];
+
+    let mut result = Vec::with_capacity(length);
+    let mut last_face: Option<usize> = None;
+    let mut second_last_face: Option<usize> = None;
+
+    while result.len() < length {
+        let face_idx = (next_random_u64() % 6) as usize;
+        let axis = face_idx / 2;
+
+        if Some(face_idx) == last_face {
+            continue;
+        }
+        if let (Some(lf), Some(slf)) = (last_face, second_last_face) {
+            if axis == lf / 2 && axis == slf / 2 {
+                continue;
+            }
+        }
+
+        let mod_idx = (next_random_u64() % 3) as usize;
+        result.push(format!("{}{}", FACES[face_idx], MODIFIERS[mod_idx]));
+        second_last_face = last_face;
+        last_face = Some(face_idx);
+    }
+
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_wca_scramble_rules() {
+        let scramble = generate_wca_scramble(20);
+        assert_eq!(scramble.len(), 20);
+        let parsed = parse_moves(&scramble.join(" ")).expect("scramble válido");
+        assert_eq!(parsed.len(), 20);
+
+        let axis_of = |s: &str| -> u8 {
+            match s.chars().next() {
+                Some('R') | Some('L') => 0,
+                Some('U') | Some('D') => 1,
+                _ => 2,
+            }
+        };
+        let face_of = |s: &str| -> char { s.chars().next().unwrap_or(' ') };
+
+        for i in 1..scramble.len() {
+            assert_ne!(face_of(&scramble[i]), face_of(&scramble[i - 1]));
+            if i >= 2 {
+                let a0 = axis_of(&scramble[i - 2]);
+                let a1 = axis_of(&scramble[i - 1]);
+                let a2 = axis_of(&scramble[i]);
+                assert!(!(a0 == a1 && a1 == a2), "Eje redundante en {:?}", &scramble[i - 2..=i]);
+            }
+        }
+    }
 }
